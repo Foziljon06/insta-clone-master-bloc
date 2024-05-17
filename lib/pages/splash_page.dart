@@ -1,12 +1,8 @@
-import 'dart:async';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:instagram_clone/pages/signin_page.dart';
-import '../services/auth_service.dart';
-import '../services/log_service.dart';
-import '../services/notif_service.dart';
-import '../services/prefs_service.dart';
-import 'home_page.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../bloc/splash_page_bloc/splash_bloc.dart';
+
 
 class SplashPage extends StatefulWidget {
   static const String id = "splash_page";
@@ -18,63 +14,15 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
-  static final FirebaseMessaging _firebaseMessaging =
-      FirebaseMessaging.instance;
-
-  callNextPage(BuildContext context) {
-    if (AuthService.isLoggedIn()) {
-      // Get.offNamed(HomePage.id);
-      Navigator.pushReplacementNamed(context, HomePage.id);
-    } else {
-      // Get.offNamed(SignInPage.id);
-      Navigator.pushReplacementNamed(context, SignInPage.id);
-    }
-  }
-
-  initTimer(BuildContext context) {
-    Timer(const Duration(seconds: 2), () {
-      callNextPage(context);
-    });
-  }
-
-  initNotification() async {
-    NotificationSettings settings = await _firebaseMessaging.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
-
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      LogService.i('User granted permission');
-    } else {
-      LogService.e('User declined or has not accepted permission');
-    }
-
-    _firebaseMessaging.getToken().then((value) async {
-      String fcmToken = value.toString();
-      Prefs.saveFCM(fcmToken);
-      String token = await Prefs.loadFCM();
-      LogService.i("FCM Token: $token");
-    });
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      String title = message.notification!.title.toString();
-      String body = message.notification!.body.toString();
-      LogService.i(title);
-      LogService.i(body);
-      NotifService().showLocalNotification(title, body);
-    });
-  }
+  late SplashBloc splashBloc;
 
   @override
   void initState() {
     super.initState();
-    initTimer(context);
-    initNotification();
+    splashBloc = BlocProvider.of<SplashBloc>(context);
+
+    splashBloc.initTimer(context);
+    splashBloc.initNotification();
   }
 
   @override
@@ -111,9 +59,7 @@ class _SplashPageState extends State<SplashPage> {
               "All rights reserved",
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
-            SizedBox(
-              height: 20,
-            ),
+            SizedBox(height: 20),
           ],
         ),
       ),
